@@ -1,20 +1,64 @@
 name: Deploy CI
+
 on:
   push:
-    branches: [main]
+    branches:
+      - production
+      - staging
+      - test
+      - main
   pull_request:
-    types: [opened, synchronize, reopened]
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+
 jobs:
-  deploy:
+  deploy-preview:
     runs-on: ubuntu-latest
-    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    if: github.ref != 'refs/heads/production'
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Deploy to Vercel Action
+      - name: Set ENV
+        shell: bash
+        run: |
+          if [[ $GITHUB_REF == 'refs/heads/main' ]]; then
+              echo "ENVIRONMENT=dev" >> "$GITHUB_ENV"
+          elif [[ $GITHUB_REF == 'refs/heads/test' ]]; then
+              echo "ENVIRONMENT=test" >> "$GITHUB_ENV"
+          elif [[ $GITHUB_REF == 'refs/heads/staging' ]]; then
+              echo "ENVIRONMENT=staging" >> "$GITHUB_ENV"
+          else
+              echo "ENVIRONMENT=preview" >> "$GITHUB_ENV"
+          fi
+      - name: Deploy to Vercel
         uses: BetaHuhn/deploy-to-vercel-action@v1
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          PRODUCTION: false
+          BUILD_ENV: |
+            ENVIRONMENT=${{ env.ENVIRONMENT }}
+            SECRET_TOKEN=${{ secrets.SECRET_NON_PROD_TOKEN }}
+
+  deploy-production:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/production'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Deploy to Vercel
+        uses: BetaHuhn/deploy-to-vercel-action@v1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          BUILD_ENV: |
+            ENVIRONMENT=production
+            SECRET_TOKEN=${{ secrets.SECRET_PROD_TOKEN }}
