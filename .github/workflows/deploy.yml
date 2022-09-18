@@ -23,8 +23,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Set ENV
+        id: environment
         shell: bash
         run: |
+          echo "ENABLE_DEPLOYMENT=true" >> "$GITHUB_ENV"
           if [[ $GITHUB_REF == 'refs/heads/main' ]]; then
               echo "ENVIRONMENT=dev" >> "$GITHUB_ENV"
           elif [[ $GITHUB_REF == 'refs/heads/test' ]]; then
@@ -33,6 +35,7 @@ jobs:
               echo "ENVIRONMENT=staging" >> "$GITHUB_ENV"
           else
               echo "ENVIRONMENT=preview" >> "$GITHUB_ENV"
+              echo "ENABLE_DEPLOYMENT=false" >> "$GITHUB_ENV"
           fi
       - name: Deploy to Vercel
         uses: BetaHuhn/deploy-to-vercel-action@v1
@@ -44,6 +47,8 @@ jobs:
           PRODUCTION: false
           PR_PREVIEW_DOMAIN: "${{ env.ENVIRONMENT }}-{PR}-{USER}-{REPO}.vercel.app"
           ALIAS_DOMAINS: "${{ env.ENVIRONMENT }}-{USER}-{REPO}.vercel.app"
+          GITHUB_DEPLOYMENT: ${{ fromJSON(env.ENABLE_DEPLOYMENT) }}
+          GITHUB_DEPLOYMENT_ENV: ${{ env.ENVIRONMENT }}
           BUILD_ENV: |
             ENVIRONMENT=${{ env.ENVIRONMENT }}
             SECRET_TOKEN=${{ secrets.SECRET_NON_PROD_TOKEN }}
@@ -62,6 +67,8 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           ALIAS_DOMAINS: "{USER}-{REPO}.vercel.app"
+          GITHUB_DEPLOYMENT: true
+          GITHUB_DEPLOYMENT_ENV: production
           BUILD_ENV: |
             ENVIRONMENT=production
             SECRET_TOKEN=${{ secrets.SECRET_PROD_TOKEN }}
