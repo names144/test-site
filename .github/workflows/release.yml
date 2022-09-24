@@ -45,7 +45,7 @@ jobs:
         id: tag
         shell: bash
         run: |
-          PREVIOUS_TAG=$(git tag --sort=committerdate --list "$ENVIRONMENT_*" | tail -1)
+          PREVIOUS_TAG=$(git tag --sort=committerdate --list "$(echo $ENVIRONMENT)_*" | tail -1)
           echo "::set-output name=from::$(echo $PREVIOUS_TAG)"
           echo $PREVIOUS_TAG
           git config user.name github-actions
@@ -67,14 +67,6 @@ jobs:
     env:
       ENVIRONMENT: ${{ needs.tag-commit.outputs.environment }}
     steps:
-      - name: Set Environment
-        shell: bash
-        run: |
-          if [[ $ENVIRONMENT == 'refs/heads/production' ]]; then
-              echo "PRERELEASE=false" >> "$GITHUB_ENV"
-          else
-              echo "PRERELEASE=true" >> "$GITHUB_ENV"
-          fi
       - name: Checkout
         uses: actions/checkout@v3
       - name: Build Changelog
@@ -85,9 +77,16 @@ jobs:
           toTag: ${{ needs.tag-commit.outputs.to-tag }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Create Release
+      - name: Create Production Release
+        if: github.ref == 'refs/heads/production'
         uses: softprops/action-gh-release@v0.1.14
         with:
           tag_name: ${{ needs.tag-commit.outputs.to-tag }}
           body: ${{ steps.build-changelog.outputs.changelog }}
-          prerelease: ${{ env.PRERELEASE }}
+      - name: Create Prerelease
+        if: github.ref != 'refs/heads/production'
+        uses: softprops/action-gh-release@v0.1.14
+        with:
+          tag_name: ${{ needs.tag-commit.outputs.to-tag }}
+          body: ${{ steps.build-changelog.outputs.changelog }}
+          prerelease: true
