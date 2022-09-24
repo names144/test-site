@@ -45,7 +45,6 @@ jobs:
         id: tag
         shell: bash
         run: |
-          ENVIRONMENT=${{ steps.environment.outputs.environment }}
           PREVIOUS_TAG=$(git tag --sort=committerdate --list "$ENVIRONMENT_*" | tail -1)
           echo "::set-output name=from::$(echo $PREVIOUS_TAG)"
           echo $PREVIOUS_TAG
