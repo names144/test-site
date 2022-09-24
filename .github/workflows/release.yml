@@ -38,19 +38,25 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+      - name: Fetch Tags
+        shell: bash
+        run: git fetch --tags origin
       - name: Create Tag
         id: tag
         shell: bash
         run: |
-          echo "::set-output name=from::$(git for-each-ref --sort=-creatordate --count=1 --format '%(tag)' 'refs/tags/$ENVIRONMENT_*')"
+          PREVIOUS_TAG=$(git for-each-ref --sort=-creatordate --count=1 --format '%(tag)' 'refs/tags/$ENVIRONMENT_*')
+          echo "::set-output name=from::$(echo $PREVIOUS_TAG)"
+          echo $PREVIOUS_TAG
           git config user.name github-actions
           git config user.email github-actions@github.com
           GIT_HASH=$(git rev-parse --short "$GITHUB_SHA")
           ISO_TIMESTAMP=$(TZ=UTC0 git show $GITHUB_SHA --quiet --date='format-local:%Y%m%dT%H%M%SZ' --format="%cd")
           ISO_PRETTY=$(TZ=UTC0 git show $GITHUB_SHA --quiet --date='format-local:%Y-%m-%d %H:%M:%S' --format="%cd")
           TAG_NAME=$(echo "$(echo $ENVIRONMENT)_$(echo $ISO_TIMESTAMP)_$GIT_HASH")
+          echo $TAG_NAME
           git tag -a $TAG_NAME -m "$ENVIRONMENT Release $ISO_PRETTY (UTC)"
-          git push $TAG_NAME
+          git push origin $TAG_NAME
           echo "::set-output name=to::$(echo $TAG_NAME)"
 
   create-release:
@@ -71,8 +77,6 @@ jobs:
           fi
       - name: Checkout
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
       - name: Build Changelog
         id: build-changelog
         uses: mikepenz/release-changelog-builder-action@v3
