@@ -1,0 +1,89 @@
+name: Create Release
+
+on:
+  push:
+    branches:
+      - production
+      - staging
+      - test
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tag-commit:
+    runs-on: ubuntu-latest
+    outputs:
+      from-tag: ${{ steps.tag.outputs.from }}
+      to-tag: ${{ steps.tag.outputs.to }}
+      environment: ${{ steps.environment.outputs.environment }}
+    steps:
+      - name: Set Environment
+        id: environment
+        shell: bash
+        run: |
+          if [[ $GITHUB_REF == 'refs/heads/production' ]]; then
+              echo "ENVIRONMENT=production" >> "$GITHUB_ENV"
+          elif [[ $GITHUB_REF == 'refs/heads/test' ]]; then
+              echo "ENVIRONMENT=test" >> "$GITHUB_ENV"
+          elif [[ $GITHUB_REF == 'refs/heads/staging' ]]; then
+              echo "ENVIRONMENT=staging" >> "$GITHUB_ENV"
+          else
+              echo "Running on invalid branch, exiting"
+              exit 1
+          fi
+          echo "::set-output name=environment::$(echo $ENVIRONMENT)"
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Create Tag
+        id: tag
+        shell: bash
+        run: |
+          echo "::set-output name=from::$(git for-each-ref --sort=-creatordate --count=1 --format '%(tag)' 'refs/tags/$ENVIRONMENT_*')"
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          GIT_HASH=$(git rev-parse --short "$GITHUB_SHA")
+          ISO_TIMESTAMP=$(TZ=UTC0 git show $GITHUB_SHA --quiet --date='format-local:%Y%m%dT%H%M%SZ' --format="%cd")
+          ISO_PRETTY=$(TZ=UTC0 git show $GITHUB_SHA --quiet --date='format-local:%Y-%m-%d %H:%M:%S' --format="%cd")
+          TAG_NAME=$(echo "$(echo $ENVIRONMENT)_$(echo $ISO_TIMESTAMP)_$GIT_HASH")
+          git tag -a $TAG_NAME -m "$ENVIRONMENT Release $ISO_PRETTY (UTC)"
+          git push $TAG_NAME
+          echo "::set-output name=to::$(echo $TAG_NAME)"
+
+  create-release:
+    runs-on: ubuntu-latest
+    if: github.ref != 'refs/heads/staging'
+    needs:
+      - tag-commit
+    env:
+      ENVIRONMENT: ${{ needs.tag-commit.outputs.environment }}
+    steps:
+      - name: Set Environment
+        shell: bash
+        run: |
+          if [[ $ENVIRONMENT == 'refs/heads/production' ]]; then
+              echo "PRERELEASE=false" >> "$GITHUB_ENV"
+          else
+              echo "PRERELEASE=true" >> "$GITHUB_ENV"
+          fi
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Build Changelog
+        id: build-changelog
+        uses: mikepenz/release-changelog-builder-action@v3
+        with:
+          fromTag: ${{ needs.tag-commit.outputs.from-tag }}
+          toTag: ${{ needs.tag-commit.outputs.to-tag }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create Release
+        uses: softprops/action-gh-release@v0.1.14
+        with:
+          tag_name: ${{ needs.tag-commit.outputs.to-tag }}
+          body: ${{ steps.build-changelog.outputs.changelog }}
+          prerelease: ${{ env.PRERELEASE }}
