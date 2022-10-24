@@ -54,7 +54,6 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           PRODUCTION: false
-          PR_PREVIEW_DOMAIN: "preview-{PR}-{REPO}.vercel.app"
           ALIAS_DOMAINS: "${{ env.ALIAS_DOMAIN }}"
           GITHUB_DEPLOYMENT: ${{ fromJSON(env.ENABLE_DEPLOYMENT) }}
           GITHUB_DEPLOYMENT_ENV: ${{ env.ENVIRONMENT }}
