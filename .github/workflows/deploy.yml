@@ -30,9 +30,9 @@ jobs:
         run: echo Deployment URL - "${{ needs.deploy.outputs.url }}"
       - name: Ping Site
         run: |
-          if curl -Is https://${{ needs.deploy.outputs.url }} | head -n 1 | grep "2\d\d" ; then
-            echo "Website is alive!"
+          if curl -Is https://${{ needs.deploy.outputs.url }} | head -n 1 | grep -e "2\d\d" -e "3\d\d" ; then
+            echo Website is alive!
           else
-            echo "Website returns a non-200 HTTP Code!"
+            echo Website returned a non-200/300 HTTP Code!
             exit 1
           fi
