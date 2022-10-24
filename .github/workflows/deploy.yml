@@ -16,63 +16,8 @@ on:
       - reopened
 
 jobs:
-  deploy-preview:
-    runs-on: ubuntu-latest
-    if: github.ref != 'refs/heads/production'
-    steps:
-      - name: Set Environment
-        id: environment
-        shell: bash
-        run: |
-          echo "ENABLE_DEPLOYMENT=true" >> "$GITHUB_ENV"
-          if [[ $GITHUB_REF == 'refs/heads/main' ]]; then
-              echo "ENVIRONMENT=dev" >> "$GITHUB_ENV"
-              echo "ALIAS_DOMAIN=dev-test-site.nickames.dev" >> "$GITHUB_ENV"
-          elif [[ $GITHUB_REF == 'refs/heads/test' ]]; then
-              echo "ENVIRONMENT=test" >> "$GITHUB_ENV"
-              echo "ALIAS_DOMAIN=test-test-site.nickames.dev" >> "$GITHUB_ENV"
-          elif [[ $GITHUB_REF == 'refs/heads/staging' ]]; then
-              echo "ENVIRONMENT=staging" >> "$GITHUB_ENV"
-              echo "ALIAS_DOMAIN=stg-test-site.nickames.dev" >> "$GITHUB_ENV"
-          else
-              echo "ENVIRONMENT=preview" >> "$GITHUB_ENV"
-              echo "ENABLE_DEPLOYMENT=false" >> "$GITHUB_ENV"
-              echo "ALIAS_DOMAIN=test-test-site.nickames.dev" >> "$GITHUB_ENV"
-          fi
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Deploy to Vercel
-        uses: BetaHuhn/deploy-to-vercel-action@v1
-        with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-          PRODUCTION: false
-          PR_PREVIEW_DOMAIN: "preview-{PR}-{REPO}.vercel.app"
-          ALIAS_DOMAINS: "${{ env.ALIAS_DOMAIN }}"
-          GITHUB_DEPLOYMENT: ${{ fromJSON(env.ENABLE_DEPLOYMENT) }}
-          GITHUB_DEPLOYMENT_ENV: ${{ env.ENVIRONMENT }}
-          BUILD_ENV: |
-            ENVIRONMENT=${{ env.ENVIRONMENT }}
-            SECRET_TOKEN=${{ secrets.SECRET_NON_PROD_TOKEN }}
-
-  deploy-production:
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/production'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Deploy to Vercel
-        uses: BetaHuhn/deploy-to-vercel-action@v1
-        with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-          ALIAS_DOMAINS: "test-site.nickames.dev"
-          GITHUB_DEPLOYMENT: true
-          GITHUB_DEPLOYMENT_ENV: production
-          BUILD_ENV: |
-            ENVIRONMENT=production
-            SECRET_TOKEN=${{ secrets.SECRET_PROD_TOKEN }}
+  deploy:
+    uses: "./deploy-call.yml"
+    secrets: inherit
+    with:
+      is_pr: "${{ github.event_name == "pull_request" }}"
