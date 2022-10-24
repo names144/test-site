@@ -20,4 +20,4 @@ jobs:
     uses: "./deploy-call.yml"
     secrets: inherit
     with:
-      is_pr: "${{ github.event_name == "pull_request" }}"
+      is_pr: "${{ github.event_name == 'pull_request' }}"
