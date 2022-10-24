@@ -47,6 +47,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Deploy to Vercel
+        id: vercel
         uses: BetaHuhn/deploy-to-vercel-action@v1
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -60,6 +61,9 @@ jobs:
           BUILD_ENV: |
             ENVIRONMENT=${{ env.ENVIRONMENT }}
             SECRET_TOKEN=${{ secrets.SECRET_NON_PROD_TOKEN }}
+      - name: Echo Outputs
+        id: set_outputs
+        run: echo "${{ steps.vercel.outputs.DEPLOYMENT_URLS }}"
 
   deploy-production:
     runs-on: ubuntu-latest
