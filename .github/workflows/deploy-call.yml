@@ -11,13 +11,13 @@ on:
 jobs:
   echo-input-pr:
     runs-on: ubuntu-latest
-    if: inputs.is_pr == "true"
+    if: ${{ inputs.is_pr == "true" }}
     steps:
       - run: echo The input is ${{ inputs.is_pr }}
 
   echo-input-not-pr:
     runs-on: ubuntu-latest
-    if: inputs.is_pr != "true"
+    if: ${{ inputs.is_pr != "true" }}
     steps:
       - run: echo The input is ${{ inputs.is_pr }}
 
