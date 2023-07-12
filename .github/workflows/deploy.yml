@@ -14,13 +14,6 @@ on:
       - opened
       - synchronize
       - reopened
-  workflow_dispatch:
-    inputs:
-      is_foo:
-        description: "Is this a foo?"
-        type: boolean
-        required: false
-        default: false
 
 jobs:
   foo:
