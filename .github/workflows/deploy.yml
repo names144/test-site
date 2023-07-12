@@ -14,8 +14,27 @@ on:
       - opened
       - synchronize
       - reopened
+  workflow_dispatch:
+    inputs:
+      is_foo:
+        description: "Is this a foo?"
+        type: boolean
+        required: false
+        default: false
 
 jobs:
+  foo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Echo Foo
+        run: echo Is Foo - "${{ github.event.inputs.is_foo }}"
+      - name: Echo success if foo
+        if: github.event.inputs.is_foo == 'true'
+        run: echo Success!
+      - name: Echo failure if not foo
+        if: github.event.inputs.is_foo == 'false'
+        run: echo Failure!
+
   deploy:
     uses: "./.github/workflows/deploy-call.yml"
     secrets: inherit
