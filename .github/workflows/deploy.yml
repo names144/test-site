@@ -32,7 +32,7 @@ jobs:
         if: github.event.inputs.is_foo == 'true'
         run: echo Success!
       - name: Echo failure if not foo
-        if: github.event.inputs.is_foo == ''
+        if: github.event.inputs.is_foo == 'false' || github.event.inputs.is_foo == ''
         run: echo Failure!
 
   deploy:
